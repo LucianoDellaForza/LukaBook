@@ -48,7 +48,7 @@ class AuthViewModel @ViewModelInject constructor(
             return
         }
         _registerStatus.postValue(Event(Resource.Loading()))
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher) {
             val result = repository.register(email, username, password)
             _registerStatus.postValue(Event(result))
         }
