@@ -3,6 +3,7 @@ package com.chelios.lukabook.other
 //for: in error case, after rotating device: snackbars not to show twice
 class Event<out T>(private val content: T) {
 
+    //for consuming an event
     var hasBeenHandled = false
         private set
 
