@@ -1,6 +1,7 @@
 package com.chelios.lukabook.repositories
 
 import android.net.Uri
+import com.chelios.lukabook.data.entities.Post
 import com.chelios.lukabook.data.entities.User
 import com.chelios.lukabook.other.Resource
 
@@ -11,4 +12,7 @@ interface MainRepository {
     suspend fun getUsers(uids: List<String>): Resource<List<User>>
 
     suspend fun getUser(uid: String): Resource<User>
+
+    //get posts from people who are followed
+    suspend fun getPostsForFollows(): Resource<List<Post>>
 }
