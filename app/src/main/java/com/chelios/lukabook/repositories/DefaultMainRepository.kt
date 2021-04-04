@@ -49,6 +49,26 @@ class DefaultMainRepository : MainRepository {
         }
     }
 
+    override suspend fun toggleLikeForPost(post: Post) = withContext(Dispatchers.IO) {
+        safeCall {
+            var isLiked = false
+            firestore.runTransaction {transaction ->
+                val uid = FirebaseAuth.getInstance().uid!!
+                val postResult = transaction.get(posts.document(post.id))
+                val currentLikes = postResult.toObject(Post::class.java)?.likedBy ?: listOf()
+                transaction.update(
+                        posts.document(post.id),
+                        "likedBy",
+                        if(uid in currentLikes) currentLikes - uid else {
+                            currentLikes + uid  //+ -> adds uid to currentLikes list and return that list, - -> removes uid from list and returns list
+                            isLiked = true
+                        }
+                )
+            }.await()
+            Resource.Success(isLiked)
+        }
+    }
+
     override suspend fun getPostsForFollows() = withContext(Dispatchers.IO) {
         safeCall {
             val uid = FirebaseAuth.getInstance().uid!!
@@ -65,6 +85,15 @@ class DefaultMainRepository : MainRepository {
                         post.isLiked = uid in post.likedBy
                     }
             Resource.Success(allPosts)
+        }
+    }
+
+    override suspend fun deletePost(post: Post) = withContext(Dispatchers.IO) {
+        safeCall {
+            posts.document(post.id).delete().await()
+            //delete post image from storage
+            storage.getReferenceFromUrl(post.imageUrl).delete().await()
+            Resource.Success(post)
         }
     }
 

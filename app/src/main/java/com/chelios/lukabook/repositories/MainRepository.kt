@@ -15,4 +15,8 @@ interface MainRepository {
 
     //get posts from people who are followed
     suspend fun getPostsForFollows(): Resource<List<Post>>
+
+    suspend fun toggleLikeForPost(post: Post): Resource<Boolean>
+
+    suspend fun deletePost(post: Post): Resource<Post>
 }
