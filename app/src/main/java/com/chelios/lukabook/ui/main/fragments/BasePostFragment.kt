@@ -7,8 +7,10 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.RequestManager
 import com.chelios.lukabook.adapters.PostAdapter
+import com.chelios.lukabook.adapters.UserAdapter
 import com.chelios.lukabook.other.EventObserver
 import com.chelios.lukabook.ui.main.dialogs.DeletePostDialog
+import com.chelios.lukabook.ui.main.dialogs.LikedByDialog
 import com.chelios.lukabook.ui.main.viewmodels.BasePostViewModel
 import com.chelios.lukabook.ui.snackbar
 import com.google.firebase.auth.FirebaseAuth
@@ -47,6 +49,10 @@ abstract class BasePostFragment (
                 }
             }.show(childFragmentManager, null)
         }
+
+        postAdapter.setOnLikedByClickListener { post ->
+            basePostViewModel.getUsers(post.likedBy)
+        }
     }
 
     private fun subscribeToObservers() {
@@ -69,6 +75,7 @@ abstract class BasePostFragment (
                 val uid = FirebaseAuth.getInstance().uid!!
                 postAdapter.posts[index].apply {
                     this.isLiked = isLiked
+                    isLiking = false
                     if(isLiked) {
                         likedBy += uid
                     } else {
@@ -77,6 +84,13 @@ abstract class BasePostFragment (
                 }
                 postAdapter.notifyItemChanged(index)
             }
+        })
+        basePostViewModel.likedByUsers.observe(viewLifecycleOwner, EventObserver(
+                onError = { snackbar(it) }
+        ) { users ->
+            val userAdapter = UserAdapter(glide)
+            userAdapter.users = users
+            LikedByDialog(userAdapter).show(childFragmentManager, null)
         })
         basePostViewModel.deletePostStatus.observe(viewLifecycleOwner, EventObserver(
                 onError = { snackbar(it) }
