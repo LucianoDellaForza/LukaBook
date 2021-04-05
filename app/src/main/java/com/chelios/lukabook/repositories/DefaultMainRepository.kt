@@ -211,9 +211,15 @@ class DefaultMainRepository : MainRepository {
 
     override suspend fun getUsers(uids: List<String>): Resource<List<User>> = withContext(Dispatchers.IO) {
         safeCall {
-            val usersList = users.whereIn("uid", uids).orderBy("username").get().await()
+            //firebase allows up to 10 fields (uids) in whereIn query - solution to split in chunks of sizes of 10 and join together result in resultList
+            val chunks = uids.chunked(10)
+            val resultList = mutableListOf<User>()
+            chunks.forEach { chunk ->
+                val usersList = users.whereIn("uid", uids).orderBy("username").get().await()
                     .toObjects(User::class.java)
-            Resource.Success(usersList)
+                resultList.addAll(usersList)
+            }
+            Resource.Success(resultList.toList())
         }
     }
 
