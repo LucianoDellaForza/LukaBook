@@ -3,7 +3,9 @@ package com.chelios.lukabook.repositories
 import android.net.Uri
 import com.chelios.lukabook.data.entities.Comment
 import com.chelios.lukabook.data.entities.Post
+import com.chelios.lukabook.data.entities.ProfileUpdate
 import com.chelios.lukabook.data.entities.User
+import com.chelios.lukabook.other.Constants.DEFAULT_PROFILE_PICTURE_URL
 import com.chelios.lukabook.other.Resource
 import com.chelios.lukabook.other.safeCall
 import com.google.firebase.auth.FirebaseAuth
@@ -152,6 +154,34 @@ class DefaultMainRepository : MainRepository {
             )
             comments.document(commentId).set(comment).await()
             Resource.Success(comment)
+        }
+    }
+
+    override suspend fun updateProfilePicture(uid: String, imageUri: Uri) = withContext(Dispatchers.IO) {
+        //safeCall
+        val storageRef = storage.getReference(uid)
+        val user = getUser(uid).data!!
+        //if profile pic already exists (and its not default), delete it and only then upload new one
+        if(user.profilePictureUrl != DEFAULT_PROFILE_PICTURE_URL) {
+            storage.getReferenceFromUrl(user.profilePictureUrl).delete().await()
+        }
+        storageRef.putFile(imageUri).await().metadata?.reference?.downloadUrl?.await()
+    }
+
+    override suspend fun updateProfile(profileUpdate: ProfileUpdate) = withContext(Dispatchers.IO) {
+        safeCall {
+            val imageUrl = profileUpdate.profilePictureUri?.let{ uri ->
+                updateProfilePicture(profileUpdate.uidToUpdate, uri).toString()
+            }
+            val map = mutableMapOf(
+                    "username" to profileUpdate.username,
+                    "description" to profileUpdate.description
+            )
+            imageUrl?.let { url ->
+                map["profilePictureUrl"] = url
+            }
+            users.document(profileUpdate.uidToUpdate).update(map.toMap()).await()
+            Resource.Success(Any())
         }
     }
 

@@ -3,6 +3,7 @@ package com.chelios.lukabook.repositories
 import android.net.Uri
 import com.chelios.lukabook.data.entities.Comment
 import com.chelios.lukabook.data.entities.Post
+import com.chelios.lukabook.data.entities.ProfileUpdate
 import com.chelios.lukabook.data.entities.User
 import com.chelios.lukabook.other.Resource
 
@@ -32,4 +33,8 @@ interface MainRepository {
     suspend fun deleteComment(comment: Comment): Resource<Comment>
 
     suspend fun getCommentsForPost(postId: String): Resource<List<Comment>>
+
+    suspend fun updateProfile(profileUpdate: ProfileUpdate): Resource<Any>
+
+    suspend fun updateProfilePicture(uid: String, imageUri: Uri): Uri?
 }
