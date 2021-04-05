@@ -19,7 +19,7 @@ class SearchViewModel @ViewModelInject constructor(
 ) : ViewModel() {
 
     private val _searchResults = MutableLiveData<Event<Resource<List<User>>>>()
-    private val searchResults: LiveData<Event<Resource<List<User>>>> = _searchResults
+    val searchResults: LiveData<Event<Resource<List<User>>>> = _searchResults
 
     fun searchUser(query: String) {
         if(query.isEmpty()) return
