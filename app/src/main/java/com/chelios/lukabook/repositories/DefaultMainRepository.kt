@@ -1,6 +1,7 @@
 package com.chelios.lukabook.repositories
 
 import android.net.Uri
+import com.chelios.lukabook.data.entities.Comment
 import com.chelios.lukabook.data.entities.Post
 import com.chelios.lukabook.data.entities.User
 import com.chelios.lukabook.other.Resource
@@ -133,6 +134,48 @@ class DefaultMainRepository : MainRepository {
             //delete post image from storage
             storage.getReferenceFromUrl(post.imageUrl).delete().await()
             Resource.Success(post)
+        }
+    }
+
+    override suspend fun createComment(commentText: String, postId: String) = withContext(Dispatchers.IO) {
+        safeCall {
+            val uid = auth.uid!!
+            val commentId = UUID.randomUUID().toString()
+            val user = getUser(uid).data!!
+            val comment = Comment(
+                    commentId,
+                    postId,
+                    uid,
+                    user.username,
+                    user.profilePictureUrl,
+                    commentText
+            )
+            comments.document(commentId).set(comment).await()
+            Resource.Success(comment)
+        }
+    }
+
+    override suspend fun deleteComment(comment: Comment) = withContext(Dispatchers.IO) {
+        safeCall {
+            comments.document(comment.commentId).delete().await()
+            Resource.Success(comment)
+        }
+    }
+
+    override suspend fun getCommentsForPost(postId: String) = withContext(Dispatchers.IO) {
+        safeCall {
+            val commentsForPost = comments
+                    .whereEqualTo("postId", postId)
+                    .orderBy("date", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+                    .toObjects(Comment::class.java)
+                    .onEach { comment ->
+                        val user = getUser(comment.uid!!).data!!
+                        comment.username = user.username
+                        comment.profilePictureUrl = user.profilePictureUrl
+                    }
+            Resource.Success(commentsForPost)
         }
     }
 
