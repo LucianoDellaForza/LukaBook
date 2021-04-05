@@ -49,6 +49,37 @@ class DefaultMainRepository : MainRepository {
         }
     }
 
+    override suspend fun getPostsForProfile(uid: String) = withContext(Dispatchers.IO) {
+        safeCall {
+            val profilePosts = posts.whereEqualTo("authorUid", uid)
+                    .orderBy("date", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+                    .toObjects(Post::class.java)
+                    .onEach { post ->
+                        val user = getUser(post.authorUid).data!!
+                        post.authorProfilePictureUrl = user.profilePictureUrl
+                        post.authorUsername = user.username
+                        post.isLiked = uid in post.likedBy
+                    }
+            Resource.Success(profilePosts)
+        }
+    }
+
+    override suspend fun toggleFollowForUser(uid: String) = withContext(Dispatchers.IO) {
+        safeCall {
+            var isFollowing = false
+            firestore.runTransaction { transaction ->
+                val currentUid = auth.uid!!
+                val currentUser = transaction.get(users.document(currentUid)).toObject(User::class.java)!!
+                isFollowing = uid in currentUser.follows
+                val newFollows = if(isFollowing) currentUser.follows - uid else currentUser.follows + uid
+                transaction.update(users.document(currentUid), "follows", newFollows)
+            }.await()
+            Resource.Success(!isFollowing)
+        }
+    }
+
     override suspend fun toggleLikeForPost(post: Post) = withContext(Dispatchers.IO) {
         safeCall {
             var isLiked = false
@@ -60,8 +91,8 @@ class DefaultMainRepository : MainRepository {
                         posts.document(post.id),
                         "likedBy",
                         if(uid in currentLikes) currentLikes - uid else {
-                            currentLikes + uid  //+ -> adds uid to currentLikes list and return that list, - -> removes uid from list and returns list
                             isLiked = true
+                            currentLikes + uid  //+ -> adds uid to currentLikes list and return that list, - -> removes uid from list and returns list
                         }
                 )
             }.await()
